@@ -1,0 +1,338 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Registered driver, parking vendor, or super admin profile.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "fullName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "maxLength": 180
+        },
+        "phone": {
+          "type": "string",
+          "maxLength": 32
+        },
+        "role": {
+          "type": "string",
+          "enum": ["driver", "vendor", "admin"]
+        },
+        "vehicleType": {
+          "type": "string",
+          "enum": ["Sedan", "SUV", "EV", "Two-Wheeler"]
+        },
+        "licensePlate": {
+          "type": "string",
+          "maxLength": 24
+        },
+        "businessName": {
+          "type": "string",
+          "maxLength": 140
+        },
+        "payoutId": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "idVerified": {
+          "type": "boolean"
+        },
+        "admin": {
+          "type": "boolean",
+          "description": "Firebase Console-only admin boolean flag. Never writable from client."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["active", "suspended"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "fullName", "email", "role", "status", "createdAt", "updatedAt"]
+    },
+    "ParkingSlot": {
+      "title": "ParkingSlot",
+      "description": "Vendor-listed parking facility with bays, pricing, amenities, coordinates, and approval state.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "vendorId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "vendorName": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "title": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 140
+        },
+        "address": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 240
+        },
+        "landmark": {
+          "type": "string",
+          "maxLength": 140
+        },
+        "neighborhood": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "category": {
+          "type": "string",
+          "enum": [
+            "Covered Garage",
+            "Open Driveway",
+            "Commercial Lot",
+            "Residential Society",
+            "Mall/Complex"
+          ]
+        },
+        "lat": {
+          "type": "number"
+        },
+        "lng": {
+          "type": "number"
+        },
+        "totalSlots": {
+          "type": "integer"
+        },
+        "slotPrefix": {
+          "type": "string",
+          "maxLength": 12
+        },
+        "hourlyRate": {
+          "type": "number"
+        },
+        "dailyRate": {
+          "type": "number"
+        },
+        "monthlyRate": {
+          "type": "number"
+        },
+        "rating": {
+          "type": "number"
+        },
+        "reviewCount": {
+          "type": "integer"
+        },
+        "is24Hours": {
+          "type": "boolean"
+        },
+        "openTime": {
+          "type": "string",
+          "maxLength": 10
+        },
+        "closeTime": {
+          "type": "string",
+          "maxLength": 10
+        },
+        "isOpen": {
+          "type": "boolean"
+        },
+        "approvalStatus": {
+          "type": "string",
+          "enum": ["approved", "pending", "rejected"]
+        },
+        "thumbnailId": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "vehicleTypes": {
+          "type": "array"
+        },
+        "amenities": {
+          "type": "array"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "vendorId",
+        "title",
+        "address",
+        "category",
+        "lat",
+        "lng",
+        "totalSlots",
+        "hourlyRate",
+        "isOpen",
+        "approvalStatus",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Booking": {
+      "title": "Booking",
+      "description": "Parking reservation with selected bay, duration, pricing breakdown, and QR pass token.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "driverId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "driverName": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "vendorId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "slotId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "slotTitle": {
+          "type": "string",
+          "maxLength": 140
+        },
+        "bayCode": {
+          "type": "string",
+          "maxLength": 16
+        },
+        "vehiclePlate": {
+          "type": "string",
+          "maxLength": 24
+        },
+        "startTime": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "durationHours": {
+          "type": "integer"
+        },
+        "totalAmount": {
+          "type": "number"
+        },
+        "platformFee": {
+          "type": "number"
+        },
+        "vendorPayout": {
+          "type": "number"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["active", "completed", "cancelled"]
+        },
+        "qrCodeToken": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "driverId",
+        "vendorId",
+        "slotId",
+        "slotTitle",
+        "bayCode",
+        "durationHours",
+        "totalAmount",
+        "status",
+        "qrCodeToken",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "AdminRecord": {
+      "title": "AdminRecord",
+      "description": "Trusted admin grant marker document.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "grantedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "grantedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/entities/UserProfile"
+      },
+      "description": "User profiles keyed by Firebase Auth UID with strict owner/admin read isolation."
+    },
+    "/admins/{userId}": {
+      "schema": {
+        "$ref": "#/entities/AdminRecord"
+      },
+      "description": "Trusted super-admin registry."
+    },
+    "/parking_slots/{slotId}": {
+      "schema": {
+        "$ref": "#/entities/ParkingSlot"
+      },
+      "description": "Marketplace parking facilities listed by vendors and approved by admins."
+    },
+    "/bookings/{bookingId}": {
+      "schema": {
+        "$ref": "#/entities/Booking"
+      },
+      "description": "Driver parking reservations linked to slot and vendor."
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "ParkGrid",
+  "description": "Smart Parking Management & Marketplace for Drivers, Space Vendors, and Platform Operators with live Google Maps discovery, bay-level booking, and Firebase sync.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,295 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net (Default-Deny)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Reusable Hardened Helpers ---
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function isAdmin() {
+      return isVerifiedUser() && (
+        (
+          exists(/databases/$(database)/documents/users/$(request.auth.uid))
+          && ('admin' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data)
+          && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.admin == true
+        )
+        || exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    // --- Entity Validation Blueprints ---
+    function isValidUserProfile(data) {
+      return data.keys().hasAll(['uid', 'fullName', 'email', 'role', 'status', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly([
+          'uid', 'fullName', 'email', 'phone', 'role',
+          'vehicleType', 'licensePlate', 'businessName', 'payoutId',
+          'idVerified', 'admin', 'status', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.uid)
+        && data.fullName is string && data.fullName.size() >= 2 && data.fullName.size() <= 120
+        && data.email is string && data.email.size() >= 3 && data.email.size() <= 180
+        && (!('phone' in data) || (data.phone is string && data.phone.size() <= 32))
+        && data.role in ['driver', 'vendor', 'admin']
+        && (!('vehicleType' in data) || data.vehicleType in ['Sedan', 'SUV', 'EV', 'Two-Wheeler'])
+        && (!('licensePlate' in data) || (data.licensePlate is string && data.licensePlate.size() <= 24))
+        && (!('businessName' in data) || (data.businessName is string && data.businessName.size() <= 140))
+        && (!('payoutId' in data) || (data.payoutId is string && data.payoutId.size() <= 120))
+        && (!('idVerified' in data) || data.idVerified is bool)
+        && (!('admin' in data) || data.admin is bool)
+        && data.status in ['active', 'suspended']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidParkingSlot(data) {
+      return data.keys().hasAll([
+          'id', 'vendorId', 'title', 'address', 'category',
+          'lat', 'lng', 'totalSlots', 'hourlyRate', 'isOpen',
+          'approvalStatus', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'vendorId', 'vendorName', 'title', 'address', 'landmark', 'neighborhood',
+          'category', 'lat', 'lng', 'totalSlots', 'slotPrefix',
+          'hourlyRate', 'dailyRate', 'monthlyRate', 'rating', 'reviewCount',
+          'is24Hours', 'openTime', 'closeTime', 'isOpen', 'approvalStatus',
+          'thumbnailId', 'vehicleTypes', 'amenities', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.id)
+        && isValidId(data.vendorId)
+        && (!('vendorName' in data) || (data.vendorName is string && data.vendorName.size() <= 120))
+        && data.title is string && data.title.size() >= 3 && data.title.size() <= 140
+        && data.address is string && data.address.size() >= 5 && data.address.size() <= 240
+        && (!('landmark' in data) || (data.landmark is string && data.landmark.size() <= 140))
+        && (!('neighborhood' in data) || (data.neighborhood is string && data.neighborhood.size() <= 80))
+        && data.category in ['Covered Garage', 'Open Driveway', 'Commercial Lot', 'Residential Society', 'Mall/Complex']
+        && data.lat is number && data.lat >= -90 && data.lat <= 90
+        && data.lng is number && data.lng >= -180 && data.lng <= 180
+        && data.totalSlots is int && data.totalSlots >= 1 && data.totalSlots <= 500
+        && (!('slotPrefix' in data) || (data.slotPrefix is string && data.slotPrefix.size() <= 12))
+        && data.hourlyRate is number && data.hourlyRate >= 0 && data.hourlyRate <= 5000
+        && (!('dailyRate' in data) || (data.dailyRate is number && data.dailyRate >= 0 && data.dailyRate <= 50000))
+        && (!('monthlyRate' in data) || (data.monthlyRate is number && data.monthlyRate >= 0 && data.monthlyRate <= 500000))
+        && (!('rating' in data) || (data.rating is number && data.rating >= 0 && data.rating <= 5))
+        && (!('reviewCount' in data) || (data.reviewCount is int && data.reviewCount >= 0))
+        && (!('is24Hours' in data) || data.is24Hours is bool)
+        && (!('openTime' in data) || (data.openTime is string && data.openTime.size() <= 10))
+        && (!('closeTime' in data) || (data.closeTime is string && data.closeTime.size() <= 10))
+        && data.isOpen is bool
+        && data.approvalStatus in ['approved', 'pending', 'rejected']
+        && (!('thumbnailId' in data) || (data.thumbnailId is string && data.thumbnailId.size() <= 64))
+        && (!('vehicleTypes' in data) || (data.vehicleTypes is list && data.vehicleTypes.size() >= 1 && data.vehicleTypes.size() <= 6 && data.vehicleTypes[0] is string))
+        && (!('amenities' in data) || (data.amenities is list && data.amenities.size() <= 12 && (data.amenities.size() == 0 || data.amenities[0] is string)))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidBooking(data) {
+      return data.keys().hasAll([
+          'id', 'driverId', 'vendorId', 'slotId', 'slotTitle',
+          'bayCode', 'durationHours', 'totalAmount', 'status',
+          'qrCodeToken', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'driverId', 'driverName', 'vendorId', 'slotId', 'slotTitle',
+          'bayCode', 'vehiclePlate', 'startTime', 'durationHours',
+          'totalAmount', 'platformFee', 'vendorPayout', 'status',
+          'qrCodeToken', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.id)
+        && isValidId(data.driverId)
+        && (!('driverName' in data) || (data.driverName is string && data.driverName.size() <= 120))
+        && isValidId(data.vendorId)
+        && isValidId(data.slotId)
+        && data.slotTitle is string && data.slotTitle.size() >= 1 && data.slotTitle.size() <= 140
+        && data.bayCode is string && data.bayCode.size() >= 1 && data.bayCode.size() <= 16
+        && (!('vehiclePlate' in data) || (data.vehiclePlate is string && data.vehiclePlate.size() <= 24))
+        && (!('startTime' in data) || (data.startTime is string && data.startTime.size() <= 64))
+        && data.durationHours is int && data.durationHours >= 1 && data.durationHours <= 720
+        && data.totalAmount is number && data.totalAmount >= 0 && data.totalAmount <= 1000000
+        && (!('platformFee' in data) || (data.platformFee is number && data.platformFee >= 0))
+        && (!('vendorPayout' in data) || (data.vendorPayout is number && data.vendorPayout >= 0))
+        && data.status in ['active', 'completed', 'cancelled']
+        && data.qrCodeToken is string && data.qrCodeToken.size() >= 4 && data.qrCodeToken.size() <= 128
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    // --- Collection Rules ---
+
+    // Connection health check document
+    match /test/{docId} {
+      allow get: if docId == 'connection';
+    }
+
+    // Trusted Admin Registry (Console-only; never writable by website clients)
+    match /admins/{userId} {
+      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow create, update, delete: if false;
+    }
+
+    // User Profiles (Strict PII Isolation & Zero Self-Admin Escalation)
+    match /users/{userId} {
+      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow list: if isAdmin();
+
+      allow create: if isVerifiedUser()
+        && isValidId(userId)
+        && isOwner(userId)
+        && isValidUserProfile(incoming())
+        && incoming().uid == request.auth.uid
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && incoming().status == 'active'
+        && incoming().role in ['driver', 'vendor']
+        && (!('admin' in incoming()) || incoming().admin == false);
+
+      allow update: if isVerifiedUser()
+        && isValidId(userId)
+        && isValidUserProfile(incoming())
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && ((!('admin' in incoming()) && !('admin' in existing()))
+          || (('admin' in incoming()) && ('admin' in existing()) && incoming().admin == existing().admin))
+        && (
+          (isAdmin() && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'idVerified', 'updatedAt']))
+          || (
+            isOwner(userId)
+            && incoming().role in ['driver', 'vendor']
+            && incoming().status == existing().status
+            && (!('idVerified' in incoming()) || (('idVerified' in existing()) && incoming().idVerified == existing().idVerified) || (!('idVerified' in existing()) && incoming().idVerified == false))
+            && incoming().diff(existing()).affectedKeys().hasOnly([
+              'fullName', 'phone', 'role', 'vehicleType', 'licensePlate',
+              'businessName', 'payoutId', 'updatedAt'
+            ])
+          )
+        );
+
+      allow delete: if isValidId(userId) && isAdmin();
+    }
+
+    // Parking Slots Marketplace
+    match /parking_slots/{slotId} {
+      allow get: if isValidId(slotId)
+        && (
+          existing().approvalStatus == 'approved'
+          || (isSignedIn() && (existing().vendorId == request.auth.uid || isAdmin()))
+        );
+
+      allow list: if existing().approvalStatus == 'approved'
+        || (isSignedIn() && (existing().vendorId == request.auth.uid || isAdmin()));
+
+      allow create: if isVerifiedUser()
+        && isValidId(slotId)
+        && isValidParkingSlot(incoming())
+        && incoming().id == slotId
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && (
+          isAdmin()
+          || (
+            incoming().vendorId == request.auth.uid
+            && incoming().approvalStatus == 'pending'
+          )
+        );
+
+      allow update: if isVerifiedUser()
+        && isValidId(slotId)
+        && isValidParkingSlot(incoming())
+        && incoming().id == existing().id
+        && incoming().vendorId == existing().vendorId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          isAdmin()
+          || (
+            existing().vendorId == request.auth.uid
+            && incoming().approvalStatus == existing().approvalStatus
+            && incoming().diff(existing()).affectedKeys().hasOnly([
+              'title', 'address', 'landmark', 'neighborhood', 'category',
+              'hourlyRate', 'dailyRate', 'monthlyRate', 'isOpen',
+              'is24Hours', 'openTime', 'closeTime', 'vehicleTypes', 'amenities', 'updatedAt'
+            ])
+          )
+        );
+
+      allow delete: if isValidId(slotId) && (isAdmin() || (isVerifiedUser() && existing().vendorId == request.auth.uid));
+    }
+
+    // Bookings & Passes
+    match /bookings/{bookingId} {
+      allow get: if isValidId(bookingId)
+        && isSignedIn()
+        && (
+          existing().driverId == request.auth.uid
+          || existing().vendorId == request.auth.uid
+          || isAdmin()
+        );
+
+      allow list: if isSignedIn()
+        && (
+          existing().driverId == request.auth.uid
+          || existing().vendorId == request.auth.uid
+          || isAdmin()
+        );
+
+      allow create: if isVerifiedUser()
+        && isValidId(bookingId)
+        && isValidBooking(incoming())
+        && incoming().id == bookingId
+        && incoming().driverId == request.auth.uid
+        && incoming().status == 'active'
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time
+        && exists(/databases/$(database)/documents/parking_slots/$(incoming().slotId))
+        && get(/databases/$(database)/documents/parking_slots/$(incoming().slotId)).data.approvalStatus == 'approved'
+        && get(/databases/$(database)/documents/parking_slots/$(incoming().slotId)).data.vendorId == incoming().vendorId;
+
+      allow update: if isVerifiedUser()
+        && isValidId(bookingId)
+        && isValidBooking(incoming())
+        && incoming().id == existing().id
+        && incoming().driverId == existing().driverId
+        && incoming().vendorId == existing().vendorId
+        && incoming().slotId == existing().slotId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && (
+          isAdmin()
+          || (
+            existing().status == 'active'
+            && existing().driverId == request.auth.uid
+            && incoming().status in ['completed', 'cancelled']
+            && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt'])
+          )
+        );
+
+      allow delete: if isValidId(bookingId) && isAdmin();
+    }
+  }
+}
