@@ -1,19 +1,10 @@
 import {useEffect, useRef, useState} from 'react';
 import {
   Bell,
-  Car,
   CheckCheck,
-  ChevronDown,
-  LogIn,
-  LogOut,
   Moon,
-  QrCode,
   Search,
-  ShieldCheck,
-  Store,
   Sun,
-  User,
-  UserCheck,
 } from 'lucide-react';
 import {AnimatePresence, motion} from 'motion/react';
 import type {
@@ -23,6 +14,7 @@ import type {
   UserRole,
 } from '../../types/parking';
 import {cn} from '../../lib/utils';
+import AccountMenu from '@/src/registry/ruixenui/account-menu';
 import {Button} from '../ui/button';
 
 interface NavbarFloatingProps {
@@ -67,19 +59,14 @@ export function NavbarFloating({
   onOpenCommandSearch,
 }: NavbarFloatingProps) {
   const [notifOpen, setNotifOpen] = useState(false);
-  const [profileOpen, setProfileOpen] = useState(false);
 
   const notifRef = useRef<HTMLDivElement>(null);
-  const profileRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleOutside = (e: MouseEvent) => {
       const target = e.target as Node;
       if (notifRef.current && !notifRef.current.contains(target)) {
         setNotifOpen(false);
-      }
-      if (profileRef.current && !profileRef.current.contains(target)) {
-        setProfileOpen(false);
       }
     };
     document.addEventListener('mousedown', handleOutside);
@@ -90,13 +77,6 @@ export function NavbarFloating({
     (n) => n.targetRole === activeRole || n.targetRole === 'all'
   );
   const unreadCount = roleNotifications.filter((n) => !n.read).length;
-
-  const initials = (currentUser.fullName || 'PG')
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p[0]?.toUpperCase())
-    .join('');
 
   return (
     <div className="sticky top-3 z-40 px-3 sm:px-6 pointer-events-none">
@@ -180,7 +160,6 @@ export function NavbarFloating({
                 aria-label="Notifications"
                 onClick={() => {
                   setNotifOpen((p) => !p);
-                  setProfileOpen(false);
                 }}
                 className="relative h-8 w-8 rounded-lg"
               >
@@ -261,181 +240,26 @@ export function NavbarFloating({
               )}
             </Button>
 
-            {/* Profile Section (Only shows Admin Page link when Firebase `admin: true`) */}
-            <div ref={profileRef} className="relative">
-              {hasActiveSession ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setProfileOpen((p) => !p);
-                    setNotifOpen(false);
-                  }}
-                  className={cn(
-                    'inline-flex h-8 items-center gap-2 rounded-lg border px-2 text-xs font-medium transition-colors cursor-pointer whitespace-nowrap shrink-0',
-                    profileOpen || activePage === 'profile'
-                      ? 'border-sky-500 bg-sky-500/10 text-zinc-900 dark:text-white'
-                      : 'border-zinc-200 dark:border-zinc-800 bg-zinc-100/70 dark:bg-[#090B10] text-zinc-800 dark:text-zinc-200 hover:border-zinc-300 dark:hover:border-zinc-700'
-                  )}
-                >
-                  <span className="flex h-5 w-5 items-center justify-center rounded-md bg-sky-600 text-[10px] font-bold text-white shrink-0">
-                    {initials || 'U'}
-                  </span>
-                  <span className="max-w-[90px] truncate hidden sm:inline">
-                    {currentUser.fullName}
-                  </span>
-                  <ChevronDown className="h-3.5 w-3.5 text-zinc-400 shrink-0" />
-                </button>
-              ) : (
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={onOpenAuth}
-                  className="h-8 gap-1.5 rounded-lg bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 hover:opacity-90 text-xs px-3 whitespace-nowrap shrink-0"
-                >
-                  <LogIn className="h-3.5 w-3.5" />
-                  <span>Sign In</span>
-                </Button>
-              )}
-
-              <AnimatePresence>
-                {profileOpen && hasActiveSession && (
-                  <motion.div
-                    initial={{opacity: 0, y: 6, scale: 0.98}}
-                    animate={{opacity: 1, y: 0, scale: 1}}
-                    exit={{opacity: 0, y: 6, scale: 0.98}}
-                    transition={{duration: 0.15}}
-                    className="absolute right-0 mt-2 w-64 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#0D1117] p-2 shadow-2xl z-50"
-                  >
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setProfileOpen(false);
-                        onNavigatePage('profile');
-                      }}
-                      className="w-full text-left px-2.5 py-2 border-b border-zinc-200 dark:border-zinc-800/80 hover:bg-zinc-50 dark:hover:bg-zinc-900/60 rounded-t-lg transition-colors cursor-pointer"
-                    >
-                      <div className="flex items-center gap-2">
-                        <UserCheck className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-                        <span className="text-xs font-semibold text-zinc-900 dark:text-white truncate">
-                          {currentUser.fullName}
-                        </span>
-                      </div>
-                      <div className="mt-0.5 text-[11px] text-zinc-500 dark:text-zinc-400 truncate">
-                        {currentUser.email || (isFirebaseAuthed ? 'Google Account' : 'Active Profile')}
-                      </div>
-                    </button>
-
-                    <div className="py-1.5 space-y-0.5 text-xs">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setProfileOpen(false);
-                          onNavigatePage('marketplace');
-                        }}
-                        className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800/80 transition-colors cursor-pointer"
-                      >
-                        <Car className="h-3.5 w-3.5 text-sky-500" />
-                        Driver Marketplace
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setProfileOpen(false);
-                          onNavigatePage('bookings');
-                        }}
-                        className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800/80 transition-colors cursor-pointer"
-                      >
-                        <QrCode className="h-3.5 w-3.5 text-emerald-500" />
-                        My Bookings &amp; QR Passes
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setProfileOpen(false);
-                          onNavigatePage('vendor');
-                        }}
-                        className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800/80 transition-colors cursor-pointer"
-                      >
-                        <Store className="h-3.5 w-3.5 text-amber-500" />
-                        Vendor Console
-                      </button>
-
-                      {/* Admin Page Link — Strictly visible ONLY when Firebase field admin === true */}
-                      {isAdmin && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setProfileOpen(false);
-                            onNavigatePage('admin');
-                          }}
-                          className={cn(
-                            'flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left font-medium transition-colors cursor-pointer',
-                            activePage === 'admin'
-                              ? 'bg-sky-500/15 text-sky-600 dark:text-sky-400'
-                              : 'text-sky-600 dark:text-sky-400 hover:bg-sky-500/10'
-                          )}
-                        >
-                          <span className="inline-flex items-center gap-2.5">
-                            <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
-                            Admin Center
-                          </span>
-                          <span className="text-[10px] font-mono uppercase">Admin</span>
-                        </button>
-                      )}
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setProfileOpen(false);
-                          onNavigatePage('profile');
-                        }}
-                        className={cn(
-                          'flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors cursor-pointer',
-                          activePage === 'profile'
-                            ? 'bg-sky-500/15 text-sky-600 dark:text-sky-400 font-medium'
-                            : 'text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800/80'
-                        )}
-                      >
-                        <User className="h-3.5 w-3.5 text-sky-500" />
-                        My Profile &amp; Pass
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setProfileOpen(false);
-                          onOpenAuth();
-                        }}
-                        className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800/80 transition-colors cursor-pointer"
-                      >
-                        <UserCheck className="h-3.5 w-3.5 text-zinc-400" />
-                        Switch / Add Account
-                      </button>
-                    </div>
-
-                    <div className="pt-1.5 border-t border-zinc-200 dark:border-zinc-800/80">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setProfileOpen(false);
-                          void onGoogleSignOut();
-                        }}
-                        className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-xs text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
-                      >
-                        <LogOut className="h-3.5 w-3.5" />
-                        Sign Out
-                      </button>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+            {/* Ruixen AccountMenu with Nested Submenus & Icon-Only Phone Trigger */}
+            <AccountMenu
+              currentUser={currentUser}
+              activePage={activePage}
+              activeRole={activeRole}
+              hasActiveSession={hasActiveSession}
+              isFirebaseAuthed={isFirebaseAuthed}
+              isAdmin={isAdmin}
+              isDark={isDark}
+              onNavigatePage={onNavigatePage}
+              onToggleTheme={onToggleTheme}
+              onOpenAuth={onOpenAuth}
+              onSignOut={onGoogleSignOut}
+            />
           </div>
         </div>
 
-        {/* Compact Mobile Floating Nav Row */}
-        <div className="flex md:hidden items-center gap-1 border-t border-zinc-200/80 dark:border-zinc-800/80 px-2.5 py-1.5 overflow-x-auto no-scrollbar">
-          {PUBLIC_NAV_ITEMS.map((item) => {
+        {/* Compact Mobile Floating Nav Row (FAQ excluded on phone view) */}
+        <div className="flex md:hidden items-center justify-between gap-1 border-t border-zinc-200/80 dark:border-zinc-800/80 px-2.5 py-1.5 overflow-x-auto no-scrollbar">
+          {PUBLIC_NAV_ITEMS.filter((item) => item.page !== 'faq').map((item) => {
             const isActive = activePage === item.page;
             return (
               <button

@@ -124,6 +124,7 @@ interface DarkRouteMapCanvasProps {
   origin: {lat: number; lng: number; label: string};
   destination: {lat: number; lng: number; title: string; hourlyRate: number; hasEv: boolean};
   travelMode: TravelModeOption;
+  activeTab?: 'overview' | 'map' | 'directions';
   focusedStepCoords: {lat: number; lng: number} | null;
   onRouteComputed: (summary: ComputedRouteSummary) => void;
   onRouteLoadingChange: (loading: boolean) => void;
@@ -133,6 +134,7 @@ function DarkRouteMapCanvas({
   origin,
   destination,
   travelMode,
+  activeTab,
   focusedStepCoords,
   onRouteComputed,
   onRouteLoadingChange,
@@ -155,17 +157,25 @@ function DarkRouteMapCanvas({
     const bounds = new coreLib.LatLngBounds();
     bounds.extend({lat: origin.lat, lng: origin.lng});
     bounds.extend({lat: destination.lat, lng: destination.lng});
-    map.fitBounds(bounds, {top: 56, right: 48, bottom: 56, left: 48});
+    map.fitBounds(bounds, {top: 44, right: 36, bottom: 44, left: 36});
   }, [map, coreLib, origin.lat, origin.lng, destination.lat, destination.lng]);
 
   const handleRecenterRoute = useCallback(() => {
     if (!map) return;
     if (routeViewportRef.current) {
-      map.fitBounds(routeViewportRef.current, {top: 56, right: 48, bottom: 56, left: 48});
+      map.fitBounds(routeViewportRef.current, {top: 44, right: 36, bottom: 44, left: 36});
     } else {
       fitOriginAndDestination();
     }
   }, [map, fitOriginAndDestination]);
+
+  useEffect(() => {
+    if (!map || !activeTab || activeTab === 'overview') return;
+    const timer = window.setTimeout(() => {
+      handleRecenterRoute();
+    }, 80);
+    return () => window.clearTimeout(timer);
+  }, [map, activeTab, handleRecenterRoute]);
 
   useEffect(() => {
     if (!map || !focusedStepCoords) return;
@@ -231,7 +241,7 @@ function DarkRouteMapCanvas({
 
         if (primaryRoute.viewport) {
           routeViewportRef.current = primaryRoute.viewport;
-          map.fitBounds(primaryRoute.viewport, {top: 56, right: 48, bottom: 56, left: 48});
+          map.fitBounds(primaryRoute.viewport, {top: 44, right: 36, bottom: 44, left: 36});
         } else {
           fitOriginAndDestination();
         }
@@ -441,7 +451,7 @@ function DarkRouteMapCanvas({
       </GoogleMap>
 
       {/* Minimal Dark Map Controls */}
-      <div className="absolute right-3 bottom-3 z-10 flex flex-col gap-1.5">
+      <div className="absolute right-2.5 bottom-2.5 z-10 flex flex-col gap-1.5">
         <button
           type="button"
           onClick={handleRecenterRoute}
@@ -498,6 +508,7 @@ export function ParkingDirectionsModal({
     lng: number;
   } | null>(null);
   const [activePhotoIdx, setActivePhotoIdx] = useState(0);
+  const mobileBodyScrollRef = useRef<HTMLDivElement | null>(null);
 
   const {
     suggestions: originSuggestions,
@@ -605,19 +616,19 @@ export function ParkingDirectionsModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl p-0 overflow-hidden bg-[#090B10] border-zinc-800 text-zinc-100">
+      <DialogContent className="flex flex-col w-[calc(100%-1rem)] sm:w-[calc(100%-2rem)] max-w-5xl max-h-[92dvh] sm:max-h-[90vh] p-0 overflow-hidden bg-[#090B10] border-zinc-800 text-zinc-100 rounded-2xl">
         {/* Dark Header */}
-        <div className="border-b border-zinc-800/90 bg-[#0D1117] px-5 py-4 pr-12">
-          <DialogHeader className="mb-0">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div className="shrink-0 border-b border-zinc-800/90 bg-[#0D1117] px-3.5 py-2.5 pr-10 sm:px-5 sm:py-3.5 sm:pr-12">
+          <DialogHeader className="mb-0 text-left">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 sm:gap-3">
               <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-400">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] sm:text-xs text-zinc-400">
                   <span className="inline-flex items-center gap-1 text-emerald-400 font-medium">
-                    <span className="h-2 w-2 rounded-full bg-emerald-400" />
-                    {availableBays} of {slot.totalSlots} bays free
+                    <span className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-emerald-400" />
+                    {availableBays}/{slot.totalSlots} free
                   </span>
                   <span aria-hidden="true">·</span>
-                  <span>{slot.category}</span>
+                  <span className="truncate max-w-[130px] sm:max-w-none">{slot.category}</span>
                   <span aria-hidden="true">·</span>
                   <span className="inline-flex items-center gap-1 text-amber-300 font-medium">
                     <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
@@ -628,16 +639,16 @@ export function ParkingDirectionsModal({
                     {formatCurrency(slot.hourlyRate)}/hr
                   </span>
                 </div>
-                <DialogTitle className="font-display text-lg sm:text-xl text-white mt-1 truncate">
+                <DialogTitle className="font-display text-base sm:text-xl text-white mt-0.5 sm:mt-1 truncate">
                   {slot.title}
                 </DialogTitle>
-                <DialogDescription className="text-xs text-zinc-400 truncate mt-0.5">
+                <DialogDescription className="text-[11px] sm:text-xs text-zinc-400 truncate mt-0.5">
                   {slot.address}
                 </DialogDescription>
               </div>
 
               {/* Travel Mode Switcher */}
-              <div className="inline-flex items-center gap-1 rounded-xl border border-zinc-800 bg-[#090B10] p-1 shrink-0 self-start md:self-auto">
+              <div className="inline-flex items-center gap-1 rounded-xl border border-zinc-800 bg-[#090B10] p-0.5 sm:p-1 shrink-0 self-start md:self-auto">
                 {(
                   [
                     {id: 'DRIVING', label: 'Car', icon: Car},
@@ -653,13 +664,13 @@ export function ParkingDirectionsModal({
                       type="button"
                       onClick={() => setTravelMode(mode.id)}
                       className={cn(
-                        'inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors cursor-pointer whitespace-nowrap',
+                        'inline-flex items-center gap-1 sm:gap-1.5 rounded-lg px-2 py-1 sm:px-2.5 sm:py-1.5 text-[11px] sm:text-xs font-medium transition-colors cursor-pointer whitespace-nowrap',
                         active
                           ? 'bg-sky-600 text-white shadow-sm'
                           : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/70'
                       )}
                     >
-                      <Icon className="h-3.5 w-3.5" />
+                      <Icon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                       {mode.label}
                     </button>
                   );
@@ -669,10 +680,13 @@ export function ParkingDirectionsModal({
           </DialogHeader>
         </div>
 
-        {/* Split Body: Simple Dark Map + Turn-by-Turn Guide */}
-        <div className="grid grid-cols-1 lg:grid-cols-12">
-          {/* Map Column */}
-          <div className="lg:col-span-7 h-[340px] sm:h-[420px] lg:h-[520px] relative border-b lg:border-b-0 lg:border-r border-zinc-800/90 bg-[#090B10]">
+        {/* Split Body: Up Box Map View + Scrollable Brief Info on Phone (< lg), 12-Col Side-by-Side on Desktop (lg+) */}
+        <div
+          ref={mobileBodyScrollRef}
+          className="flex-1 min-h-0 overflow-y-auto overscroll-contain slim-scrollbar lg:overflow-hidden lg:grid lg:grid-cols-12"
+        >
+          {/* Up Box (Mobile) / Left Column (Desktop): Interactive Live Route Map View */}
+          <div className="lg:col-span-7 h-[220px] sm:h-[260px] lg:h-[540px] shrink-0 relative border-b lg:border-b-0 lg:border-r border-zinc-800/90 bg-[#090B10]">
             {apiKey ? (
               <DarkRouteMapCanvas
                 origin={effectiveOrigin}
@@ -684,6 +698,7 @@ export function ParkingDirectionsModal({
                   hasEv: slot.amenities.includes('ev_charger'),
                 }}
                 travelMode={travelMode}
+                activeTab={panelTab}
                 focusedStepCoords={focusedStepCoords}
                 onRouteComputed={setRouteSummary}
                 onRouteLoadingChange={setRouteLoading}
@@ -701,15 +716,15 @@ export function ParkingDirectionsModal({
             )}
 
             {/* Floating Live Route Badge */}
-            <div className="absolute left-3 top-3 z-10 inline-flex items-center gap-2 rounded-lg border border-zinc-700/80 bg-[#0D1117]/90 px-3 py-1.5 text-xs text-zinc-200 shadow-lg backdrop-blur-md">
+            <div className="absolute left-2.5 top-2.5 sm:left-3 sm:top-3 z-10 inline-flex items-center gap-1.5 sm:gap-2 rounded-lg border border-zinc-700/80 bg-[#0D1117]/90 px-2.5 py-1 sm:px-3 sm:py-1.5 text-[11px] sm:text-xs text-zinc-200 shadow-lg backdrop-blur-md">
               {routeLoading ? (
                 <>
-                  <Loader2 className="h-3.5 w-3.5 animate-spin text-sky-400" />
-                  <span>Calculating route from your location...</span>
+                  <Loader2 className="h-3 w-3 sm:h-3.5 sm:w-3.5 animate-spin text-sky-400" />
+                  <span>Calculating route...</span>
                 </>
               ) : (
                 <>
-                  <Navigation className="h-3.5 w-3.5 text-sky-400" />
+                  <Navigation className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-sky-400" />
                   <span className="font-mono font-semibold text-white">
                     {routeSummary?.durationText || `~${Math.max(2, Math.round(directDistanceKm * 2.5))} min`}
                   </span>
@@ -722,14 +737,14 @@ export function ParkingDirectionsModal({
             </div>
           </div>
 
-          {/* Right Panel: Brief Facility Info, Origin Control, Turn-by-Turn Guide & Booking CTA */}
-          <div className="lg:col-span-5 flex flex-col h-full lg:h-[520px] bg-[#0B0E14]">
-            {/* Starting Location Bar */}
-            <div className="p-3.5 sm:px-4 border-b border-zinc-800/80 space-y-2.5 bg-[#0D1117]/70">
+          {/* Down Box (Mobile) / Right Panel (Desktop): Brief Facility Info, Origin Control & Turn-by-Turn Guide */}
+          <div className="lg:col-span-5 flex flex-col lg:h-[540px] bg-[#0B0E14] lg:overflow-hidden">
+            {/* Starting Location & Tab Bar (Sticky on mobile scroll) */}
+            <div className="sticky top-0 z-20 lg:static shrink-0 p-3 sm:px-4 border-b border-zinc-800/80 space-y-2 bg-[#0D1117]/95 backdrop-blur-md">
               <div className="flex items-center justify-between gap-2">
                 <div className="min-w-0">
                   <div className="text-[10px] uppercase tracking-wider font-semibold text-zinc-500">
-                    Calculated From User Location
+                    Route Origin
                   </div>
                   <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-400 mt-0.5 truncate">
                     <span className="h-2 w-2 rounded-full bg-emerald-400 shrink-0" />
@@ -741,7 +756,7 @@ export function ParkingDirectionsModal({
                     type="button"
                     onClick={handleRequestGpsOrigin}
                     disabled={locating}
-                    className="inline-flex items-center gap-1 rounded-lg border border-zinc-700 bg-zinc-900 px-2.5 py-1 text-[11px] font-medium text-zinc-200 hover:bg-zinc-800 transition-colors cursor-pointer"
+                    className="inline-flex items-center gap-1 rounded-lg border border-zinc-700 bg-zinc-900 px-2 py-1 sm:px-2.5 text-[11px] font-medium text-zinc-200 hover:bg-zinc-800 transition-colors cursor-pointer"
                   >
                     {locating ? (
                       <Loader2 className="h-3 w-3 animate-spin text-emerald-400" />
@@ -753,7 +768,7 @@ export function ParkingDirectionsModal({
                   <button
                     type="button"
                     onClick={() => setEditingOrigin((p) => !p)}
-                    className="rounded-lg border border-zinc-700 bg-zinc-900 px-2.5 py-1 text-[11px] font-medium text-zinc-300 hover:bg-zinc-800 transition-colors cursor-pointer"
+                    className="rounded-lg border border-zinc-700 bg-zinc-900 px-2 py-1 sm:px-2.5 text-[11px] font-medium text-zinc-300 hover:bg-zinc-800 transition-colors cursor-pointer"
                   >
                     {editingOrigin ? 'Cancel' : 'Change'}
                   </button>
@@ -778,7 +793,7 @@ export function ParkingDirectionsModal({
                     />
                   </div>
                   {originSuggestions.length > 0 && (
-                    <div className="mt-1.5 rounded-lg border border-zinc-800 bg-[#090B10] max-h-40 overflow-y-auto slim-scrollbar divide-y divide-zinc-800/60">
+                    <div className="mt-1.5 rounded-lg border border-zinc-800 bg-[#090B10] max-h-36 overflow-y-auto slim-scrollbar divide-y divide-zinc-800/60">
                       {originSuggestions.slice(0, 5).map((item) => (
                         <button
                           key={item.id}
@@ -800,7 +815,7 @@ export function ParkingDirectionsModal({
                 </div>
               )}
 
-              {/* Panel View Switcher: Brief Info vs Full Directions */}
+              {/* Panel View Switcher: Brief Info vs Turn-by-Turn Directions */}
               <div className="grid grid-cols-2 gap-1 rounded-lg border border-zinc-800 bg-[#090B10] p-1">
                 <button
                   type="button"
@@ -818,7 +833,7 @@ export function ParkingDirectionsModal({
                   type="button"
                   onClick={() => setPanelTab('directions')}
                   className={cn(
-                    'rounded-md py-1.5 text-xs font-medium transition-colors cursor-pointer inline-flex items-center justify-center gap-1.5',
+                    'rounded-md py-1.5 text-xs font-medium transition-colors cursor-pointer inline-flex items-center justify-center gap-1',
                     panelTab === 'directions'
                       ? 'bg-sky-600 text-white shadow-sm'
                       : 'text-zinc-400 hover:text-zinc-200'
@@ -834,8 +849,8 @@ export function ParkingDirectionsModal({
               </div>
             </div>
 
-            {/* Scrollable Body */}
-            <div className="flex-1 overflow-y-auto slim-scrollbar p-4 space-y-4">
+            {/* Brief Info & Directions Content */}
+            <div className="lg:flex-1 lg:min-h-0 lg:overflow-y-auto slim-scrollbar p-3.5 sm:p-4 space-y-3.5">
               {panelTab === 'overview' ? (
                 (() => {
                   const gallery =
@@ -858,8 +873,116 @@ export function ParkingDirectionsModal({
 
                   return (
                     <>
+                      {/* 4-Metric Quick Telemetry Strip (2x2 on narrow phones, 1x4 on sm+) */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-px rounded-xl overflow-hidden border border-zinc-800/90 bg-zinc-800/90 text-center">
+                        <div className="bg-[#0D1117] px-2 py-2.5">
+                          <div className="text-[10px] uppercase tracking-wider text-zinc-500">
+                            Drive ETA
+                          </div>
+                          <div className="font-mono text-xs font-semibold tabular-nums text-sky-400 mt-0.5">
+                            {routeLoading
+                              ? '...'
+                              : routeSummary?.durationText ||
+                                `~${Math.max(2, Math.round(directDistanceKm * 2.5))} min`}
+                          </div>
+                        </div>
+                        <div className="bg-[#0D1117] px-2 py-2.5">
+                          <div className="text-[10px] uppercase tracking-wider text-zinc-500">
+                            Distance
+                          </div>
+                          <div className="font-mono text-xs font-semibold tabular-nums text-white mt-0.5">
+                            {routeSummary?.distanceText ||
+                              `${directDistanceKm.toFixed(1)} km`}
+                          </div>
+                        </div>
+                        <div className="bg-[#0D1117] px-2 py-2.5">
+                          <div className="text-[10px] uppercase tracking-wider text-zinc-500">
+                            Free Bays
+                          </div>
+                          <div className="font-mono text-xs font-semibold tabular-nums text-emerald-400 mt-0.5">
+                            {availableBays}/{slot.totalSlots}
+                          </div>
+                        </div>
+                        <div className="bg-[#0D1117] px-2 py-2.5">
+                          <div className="text-[10px] uppercase tracking-wider text-zinc-500">
+                            Reviews
+                          </div>
+                          <div className="font-mono text-xs font-semibold tabular-nums text-amber-300 mt-0.5">
+                            {slot.rating.toFixed(1)} ({slot.reviewCount})
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Facility Details & Bay Range Card */}
+                      <div className="rounded-xl border border-zinc-800/90 bg-[#0D1117]/70 p-3 sm:p-3.5 space-y-2.5 text-xs">
+                        <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-zinc-800/80">
+                          <span className="text-zinc-400">
+                            Operator:{' '}
+                            <span className="text-zinc-100 font-medium">
+                              {slot.vendorName}
+                            </span>
+                          </span>
+                          <span className="font-mono text-[11px] text-zinc-400 tabular-nums">
+                            Bays {slot.slotPrefix}1–{slot.slotPrefix}
+                            {slot.totalSlots}
+                          </span>
+                        </div>
+                        <div className="flex items-start gap-2 text-zinc-300">
+                          <MapPin className="h-3.5 w-3.5 text-sky-400 shrink-0 mt-0.5" />
+                          <div className="min-w-0 leading-relaxed">
+                            <div className="text-zinc-200 break-words">{slot.address}</div>
+                            {slot.landmark && (
+                              <div className="text-[11px] text-zinc-400 mt-0.5">
+                                Landmark: {slot.landmark}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 pt-1 text-[11px] font-mono tabular-nums">
+                          <span className="text-emerald-400">
+                            {availableBays - evReadyCount} Standard Free
+                          </span>
+                          <span className="text-zinc-600">·</span>
+                          <span className="text-sky-400">
+                            {evReadyCount} EV-Ready
+                          </span>
+                          <span className="text-zinc-600">·</span>
+                          <span className="text-zinc-400">
+                            {occupiedCount} Occupied
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Pricing Tiers (Tabular INR) */}
+                      <div className="grid grid-cols-3 divide-x divide-zinc-800 rounded-xl border border-zinc-800/90 bg-[#0D1117] py-2.5 text-center">
+                        <div className="px-1.5 sm:px-2">
+                          <div className="text-[10px] uppercase tracking-wider text-zinc-500">
+                            Hourly
+                          </div>
+                          <div className="font-mono text-xs sm:text-sm font-semibold tabular-nums text-white mt-0.5">
+                            {formatCurrency(slot.hourlyRate)}
+                          </div>
+                        </div>
+                        <div className="px-1.5 sm:px-2">
+                          <div className="text-[10px] uppercase tracking-wider text-zinc-500">
+                            Daily Cap
+                          </div>
+                          <div className="font-mono text-xs sm:text-sm font-semibold tabular-nums text-zinc-200 mt-0.5">
+                            {formatCurrency(slot.dailyRate)}
+                          </div>
+                        </div>
+                        <div className="px-1.5 sm:px-2">
+                          <div className="text-[10px] uppercase tracking-wider text-zinc-500">
+                            Monthly
+                          </div>
+                          <div className="font-mono text-xs sm:text-sm font-semibold tabular-nums text-zinc-200 mt-0.5">
+                            {formatCurrency(slot.monthlyRate)}
+                          </div>
+                        </div>
+                      </div>
+
                       {/* Facility Visual Showcase (Google Place Photos or Architectural Fallback) */}
-                      <div className="relative h-44 rounded-xl overflow-hidden border border-zinc-800 bg-[#0D1117]">
+                      <div className="relative h-36 sm:h-44 rounded-xl overflow-hidden border border-zinc-800 bg-[#0D1117]">
                         <ParkingThumbnail
                           thumbnailId={slot.thumbnailId}
                           customImageUrl={currentPhotoUrl}
@@ -898,22 +1021,22 @@ export function ParkingDirectionsModal({
                         )}
 
                         {/* Top Bar: Schedule & Photo Counter */}
-                        <div className="absolute top-2.5 left-3 right-3 flex items-center justify-between gap-2 text-[11px]">
-                          <span className="inline-flex items-center gap-1.5 rounded-md bg-black/60 px-2 py-0.5 text-zinc-100 backdrop-blur-sm">
+                        <div className="absolute top-2.5 left-2.5 right-2.5 flex items-center justify-between gap-2 text-[11px]">
+                          <span className="inline-flex items-center gap-1.5 rounded-md bg-black/65 px-2 py-0.5 text-zinc-100 backdrop-blur-sm">
                             <Clock className="h-3 w-3 text-emerald-400" />
                             {slot.is24Hours
                               ? 'Open 24 Hours'
                               : `${slot.openTime} – ${slot.closeTime}`}
                           </span>
                           {gallery.length > 0 && (
-                            <span className="font-mono text-[10px] rounded-md bg-black/60 px-2 py-0.5 text-zinc-200 backdrop-blur-sm tabular-nums">
+                            <span className="font-mono text-[10px] rounded-md bg-black/65 px-2 py-0.5 text-zinc-200 backdrop-blur-sm tabular-nums">
                               {safePhotoIdx + 1} / {gallery.length}
                             </span>
                           )}
                         </div>
 
                         {/* Bottom Info Overlay */}
-                        <div className="absolute bottom-2.5 left-3 right-3 flex items-end justify-between gap-2">
+                        <div className="absolute bottom-2.5 left-2.5 right-2.5 flex items-end justify-between gap-2">
                           <div className="min-w-0">
                             <div className="text-[11px] font-medium text-sky-300 truncate">
                               {slot.neighborhood}
@@ -945,116 +1068,8 @@ export function ParkingDirectionsModal({
                         </div>
                       </div>
 
-                      {/* 4-Metric Quick Telemetry Strip */}
-                      <div className="grid grid-cols-4 divide-x divide-zinc-800 rounded-xl border border-zinc-800/90 bg-[#0D1117] py-2.5 text-center">
-                        <div className="px-1.5">
-                          <div className="text-[10px] uppercase tracking-wider text-zinc-500">
-                            Drive ETA
-                          </div>
-                          <div className="font-mono text-xs font-semibold tabular-nums text-sky-400 mt-0.5">
-                            {routeLoading
-                              ? '...'
-                              : routeSummary?.durationText ||
-                                `~${Math.max(2, Math.round(directDistanceKm * 2.5))} min`}
-                          </div>
-                        </div>
-                        <div className="px-1.5">
-                          <div className="text-[10px] uppercase tracking-wider text-zinc-500">
-                            Distance
-                          </div>
-                          <div className="font-mono text-xs font-semibold tabular-nums text-white mt-0.5">
-                            {routeSummary?.distanceText ||
-                              `${directDistanceKm.toFixed(1)} km`}
-                          </div>
-                        </div>
-                        <div className="px-1.5">
-                          <div className="text-[10px] uppercase tracking-wider text-zinc-500">
-                            Free Bays
-                          </div>
-                          <div className="font-mono text-xs font-semibold tabular-nums text-emerald-400 mt-0.5">
-                            {availableBays}/{slot.totalSlots}
-                          </div>
-                        </div>
-                        <div className="px-1.5">
-                          <div className="text-[10px] uppercase tracking-wider text-zinc-500">
-                            Reviews
-                          </div>
-                          <div className="font-mono text-xs font-semibold tabular-nums text-amber-300 mt-0.5">
-                            {slot.rating.toFixed(1)} ({slot.reviewCount})
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Facility Details & Bay Range Card */}
-                      <div className="rounded-xl border border-zinc-800/90 bg-[#0D1117]/70 p-3.5 space-y-2.5 text-xs">
-                        <div className="flex items-center justify-between gap-2 pb-2 border-b border-zinc-800/80">
-                          <span className="text-zinc-400">
-                            Operator:{' '}
-                            <span className="text-zinc-100 font-medium">
-                              {slot.vendorName}
-                            </span>
-                          </span>
-                          <span className="font-mono text-[11px] text-zinc-400 tabular-nums">
-                            Bays {slot.slotPrefix}1–{slot.slotPrefix}
-                            {slot.totalSlots}
-                          </span>
-                        </div>
-                        <div className="flex items-start gap-2 text-zinc-300">
-                          <MapPin className="h-3.5 w-3.5 text-sky-400 shrink-0 mt-0.5" />
-                          <div className="min-w-0 leading-relaxed">
-                            <div className="text-zinc-200">{slot.address}</div>
-                            {slot.landmark && (
-                              <div className="text-[11px] text-zinc-400 mt-0.5">
-                                Landmark: {slot.landmark}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-3 pt-1 text-[11px] font-mono tabular-nums">
-                          <span className="text-emerald-400">
-                            {availableBays - evReadyCount} Standard Free
-                          </span>
-                          <span className="text-zinc-600">·</span>
-                          <span className="text-sky-400">
-                            {evReadyCount} EV-Ready
-                          </span>
-                          <span className="text-zinc-600">·</span>
-                          <span className="text-zinc-400">
-                            {occupiedCount} Occupied
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Pricing Tiers (Tabular INR) */}
-                      <div className="grid grid-cols-3 divide-x divide-zinc-800 rounded-xl border border-zinc-800/90 bg-[#0D1117] py-2.5 text-center">
-                        <div className="px-2">
-                          <div className="text-[10px] uppercase tracking-wider text-zinc-500">
-                            Hourly
-                          </div>
-                          <div className="font-mono text-sm font-semibold tabular-nums text-white mt-0.5">
-                            {formatCurrency(slot.hourlyRate)}
-                          </div>
-                        </div>
-                        <div className="px-2">
-                          <div className="text-[10px] uppercase tracking-wider text-zinc-500">
-                            Daily Cap
-                          </div>
-                          <div className="font-mono text-sm font-semibold tabular-nums text-zinc-200 mt-0.5">
-                            {formatCurrency(slot.dailyRate)}
-                          </div>
-                        </div>
-                        <div className="px-2">
-                          <div className="text-[10px] uppercase tracking-wider text-zinc-500">
-                            Monthly
-                          </div>
-                          <div className="font-mono text-sm font-semibold tabular-nums text-zinc-200 mt-0.5">
-                            {formatCurrency(slot.monthlyRate)}
-                          </div>
-                        </div>
-                      </div>
-
                       {/* Vehicle Support & Amenities */}
-                      <div className="space-y-2.5 pt-1">
+                      <div className="space-y-2.5 pt-0.5">
                         <div>
                           <div className="text-[10px] uppercase tracking-wider font-semibold text-zinc-500">
                             Supported Vehicles
@@ -1139,6 +1154,10 @@ export function ParkingDirectionsModal({
                             onClick={() => {
                               setFocusedStepId(step.id);
                               if (step.coords) setFocusedStepCoords(step.coords);
+                              mobileBodyScrollRef.current?.scrollTo({
+                                top: 0,
+                                behavior: 'smooth',
+                              });
                             }}
                             className={cn(
                               'w-full flex items-start gap-3 rounded-xl border p-2.5 text-left transition-colors cursor-pointer',
@@ -1181,28 +1200,30 @@ export function ParkingDirectionsModal({
               )}
             </div>
 
-            {/* Bottom Actions */}
-            <div className="border-t border-zinc-800/90 bg-[#0D1117] p-4 flex flex-wrap items-center gap-2.5">
+            {/* Pinned Bottom Actions */}
+            <div className="sticky bottom-0 z-20 lg:static shrink-0 border-t border-zinc-800/90 bg-[#0D1117]/95 backdrop-blur-md px-3.5 py-3 sm:p-4 flex items-center gap-2">
               <Button
                 type="button"
                 variant="emerald"
-                className="flex-1"
+                className="flex-1 h-10 text-xs sm:text-sm px-3"
                 disabled={!slot.isOpen || availableBays === 0}
                 onClick={() => {
                   onOpenChange(false);
                   onBookSlot(slot);
                 }}
               >
-                <CheckCircle2 className="h-4 w-4" />
-                Reserve Bay ({formatCurrency(slot.hourlyRate)}/h)
+                <CheckCircle2 className="h-4 w-4 shrink-0" />
+                <span className="truncate">
+                  Reserve Bay ({formatCurrency(slot.hourlyRate)}/h)
+                </span>
               </Button>
               <a
                 href={googleMapsDirUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-xs font-medium text-zinc-200 hover:bg-zinc-800 transition-colors"
+                className="inline-flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-900 px-3 text-xs font-medium text-zinc-200 hover:bg-zinc-800 transition-colors"
               >
-                Maps App
+                <span>Maps App</span>
                 <ExternalLink className="h-3.5 w-3.5" />
               </a>
             </div>

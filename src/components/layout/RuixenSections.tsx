@@ -223,7 +223,7 @@ export function RuixenHero({
       {/* Subtle center contrast veil so display typography reads sharply over animated dots */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_78%_70%_at_50%_42%,rgba(250,250,250,0.86),transparent_78%)] dark:bg-[radial-gradient(ellipse_78%_70%_at_50%_42%,rgba(6,7,10,0.78),transparent_78%)]"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_62%_56%_at_50%_40%,rgba(250,250,250,0.72),transparent_74%)] dark:bg-[radial-gradient(ellipse_62%_56%_at_50%_40%,rgba(6,7,10,0.62),transparent_74%)]"
       />
 
       <div className="relative z-10 mx-auto max-w-4xl px-4 text-center">
@@ -1738,13 +1738,13 @@ export function RuixenOverviewPage({
 
       {/* 5. Bottom Cobalt-Glow CTA Card */}
       <section className="border-b border-zinc-200 dark:border-zinc-800/80">
-        <div className="mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-8 py-16">
+        <div className="mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-8 py-10">
           <motion.div
             initial={{opacity: 0, y: 18}}
             whileInView={{opacity: 1, y: 0}}
             viewport={{once: true, amount: 0.2}}
             transition={{duration: 0.45, ease: [0.16, 1, 0.3, 1]}}
-            className="relative overflow-hidden border border-zinc-200 dark:border-zinc-800/90 bg-white dark:bg-[#0B0B0F] p-8 sm:p-12 flex flex-col md:flex-row items-start md:items-center justify-between gap-6"
+            className="relative overflow-hidden border border-zinc-200 dark:border-zinc-800/90 bg-white dark:bg-[#0B0B0F] p-6 sm:p-9 flex flex-col md:flex-row items-start md:items-center justify-between gap-5"
           >
             <div
               aria-hidden="true"
@@ -1783,8 +1783,8 @@ export function RuixenFaqPage({onNavigatePage}: RuixenFaqPageProps) {
   const [openFaqIdx, setOpenFaqIdx] = useState<number | null>(0);
 
   return (
-    <div className="mx-auto max-w-[1040px] px-4 sm:px-6 lg:px-8 py-10 space-y-10">
-      <div className="border-b border-zinc-200 dark:border-zinc-800 pb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+    <div className="mx-auto max-w-[1040px] px-4 sm:px-6 lg:px-8 pt-4 pb-6 space-y-6">
+      <div className="border-b border-zinc-200 dark:border-zinc-800 pb-4 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <h1 className="font-display text-3xl sm:text-4xl font-semibold tracking-tight text-zinc-900 dark:text-white">
             Gate Protocol, Payouts &amp; FAQ
@@ -1897,9 +1897,9 @@ export function ParkGridFooter({
 }: ParkGridFooterProps) {
   return (
     <footer className="mt-auto border-t border-zinc-200 dark:border-zinc-800/80 bg-zinc-50 dark:bg-[#09090B]">
-      <div className="mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-2 md:grid-cols-6 gap-8 pb-10 border-b border-zinc-200 dark:border-zinc-800/80">
-          <div className="col-span-2 space-y-3">
+      <div className="mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-8 pt-8 pb-2">
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-6 pb-6 border-b border-zinc-200 dark:border-zinc-800/80">
+          <div className="col-span-2 space-y-2.5">
             <button
               type="button"
               onClick={() => onNavigatePage('overview')}
@@ -2004,7 +2004,7 @@ export function ParkGridFooter({
           </div>
         </div>
 
-        <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-zinc-500 dark:text-zinc-500">
+        <div className="pt-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-zinc-500 dark:text-zinc-500">
           <span>© 2026 ParkGrid Mobility Systems. All rights reserved.</span>
           <span>Live bay inventory · India (INR)</span>
         </div>

@@ -20,7 +20,7 @@ type Props = {
 };
 
 const CAM = 0.62; // camera height above the ground
-const NEAR = 0.35;
+const NEAR = 0.38;
 const FAR = 3.4;
 
 export function WaveMesh({
@@ -46,9 +46,7 @@ export function WaveMesh({
     const ctx = canvas.getContext('2d');
     if (!ctx) return () => canvas.remove();
 
-    const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const coarse = !matchMedia('(hover: hover) and (pointer: fine)').matches;
-    const dpr = Math.min(devicePixelRatio, 2);
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const hex = (h: string) => {
       const n = parseInt(h.slice(1), 16);
       return `${(n >> 16) & 255},${(n >> 8) & 255},${n & 255}`;
@@ -59,73 +57,77 @@ export function WaveMesh({
     let H = 0;
     let cols = 0;
     let rows = 0;
-    let f = 0;
+    let fx = 0;
+    let fy = 0;
     let hz = 0;
     let raf = 0;
     let visible = true;
-    let last = 0;
     const t0 = performance.now();
-    const ptr = {x: 0, z: 1.4, s: 0, tx: 0, tz: 1.4, ts: 0};
+    const ptr = {x: 0, z: 1.35, s: 0, tx: 0, tz: 1.35, ts: 0};
     const rings: {x: number; z: number; t: number}[] = [];
 
     const resize = () => {
-      const w = host.clientWidth;
-      const h = host.clientHeight;
+      const w = Math.max(1, host.clientWidth);
+      const h = Math.max(1, host.clientHeight);
       if (w === W && h === H) return;
       W = w;
       H = h;
       canvas.width = Math.round(W * dpr);
       canvas.height = Math.round(H * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      f = Math.max(W, H * 1.2) * 0.55; // focal length
-      hz = H * 0.3; // horizon
-      cols = Math.round(Math.min(150, Math.max(56, W / 9)));
-      rows = Math.round(Math.min(90, Math.max(48, H / 9.5)));
+      // Separate vertical focal length (fy) from horizontal focal length (fx)
+      // so wide PC monitors keep foreground waves in view instead of pushing them below H.
+      fy = H * 0.64;
+      fx = Math.max(W * 0.52, fy);
+      hz = H * 0.22; // horizon line
+      cols = Math.round(Math.min(160, Math.max(60, W / 8.5)));
+      rows = Math.round(Math.min(92, Math.max(50, H / 8.5)));
     };
 
     // World ground spans this half-width at the far edge, so the field always fills the frame.
-    const half = () => (W / 2 / f) * FAR * 1.05;
+    const half = () => (W / 2 / fx) * FAR * 1.06;
 
     const height = (x: number, z: number, t: number) => {
       let y =
-        0.085 * Math.sin(x * 2.2 + t * 0.7) +
-        0.07 * Math.sin(z * 2.9 - t * 0.9 + x * 0.8) +
-        0.03 * Math.sin((x + z) * 6.1 + t * 1.6);
+        0.095 * Math.sin(x * 2.2 + t * 0.85) +
+        0.08 * Math.sin(z * 2.9 - t * 1.05 + x * 0.8) +
+        0.035 * Math.sin((x + z) * 6.1 + t * 1.75);
       if (ptr.s > 0.01) {
         const d2 = (x - ptr.x) ** 2 + (z - ptr.z) ** 2;
-        y += 0.24 * ptr.s * Math.exp(-d2 / 0.07);
+        y += 0.26 * ptr.s * Math.exp(-d2 / 0.08);
       }
       for (const r of rings) {
         const age = t - r.t;
         const d = Math.hypot(x - r.x, z - r.z);
         const front = age * 1.15;
         y +=
-          0.2 * Math.exp(-((d - front) ** 2) / 0.014) * Math.exp(-age * 0.75);
+          0.22 * Math.exp(-((d - front) ** 2) / 0.015) * Math.exp(-age * 0.72);
       }
       return y;
     };
 
     const frame = (t: number) => {
       ctx.clearRect(0, 0, W, H);
-      ptr.x += (ptr.tx - ptr.x) * 0.1;
-      ptr.z += (ptr.tz - ptr.z) * 0.1;
-      ptr.s += (ptr.ts - ptr.s) * 0.06;
+      ptr.x += (ptr.tx - ptr.x) * 0.12;
+      ptr.z += (ptr.tz - ptr.z) * 0.12;
+      ptr.s += (ptr.ts - ptr.s) * 0.08;
       while (rings.length && t - rings[0].t > 5) rings.shift();
       const hw = half();
       const hot: number[] = [];
       for (let j = 0; j < rows; j++) {
         // Rows are spaced geometrically in depth, so they sit roughly evenly on screen; each row shares a size and a fog.
         const z = FAR * Math.pow(NEAR / FAR, j / (rows - 1));
-        const fog = Math.pow(1 - (z - NEAR) / (FAR - NEAR), 1.25);
-        const size = Math.max(0.8, Math.min(3.2, 2.3 / z));
-        ctx.fillStyle = `rgba(${dot},${(0.12 + fog * 0.85).toFixed(3)})`;
+        const fog = Math.pow(1 - (z - NEAR) / (FAR - NEAR), 1.18);
+        const size = Math.max(1.0, Math.min(3.4, 2.5 / z));
+        ctx.fillStyle = `rgba(${dot},${(0.16 + fog * 0.82).toFixed(3)})`;
         for (let i = 0; i < cols; i++) {
           const x = -hw + (i / (cols - 1)) * hw * 2;
           const y = height(x, z, t);
-          const sx = W / 2 + (x / z) * f;
+          const sx = W / 2 + (x / z) * fx;
           if (sx < -4 || sx > W + 4) continue;
-          const sy = hz + ((CAM - y) / z) * f;
-          if (crests && y > 0.12) {
+          const sy = hz + ((CAM - y) / z) * fy;
+          if (sy < -4 || sy > H + 4) continue;
+          if (crests && y > 0.11) {
             hot.push(sx, sy, size, fog);
             continue;
           }
@@ -133,27 +135,26 @@ export function WaveMesh({
         }
       }
       for (let k = 0; k < hot.length; k += 4) {
-        ctx.fillStyle = `rgba(${accent},${(0.2 + hot[k + 3] * 0.8).toFixed(3)})`;
-        const s = hot[k + 2] * 1.15;
+        ctx.fillStyle = `rgba(${accent},${(0.28 + hot[k + 3] * 0.72).toFixed(3)})`;
+        const s = hot[k + 2] * 1.2;
         ctx.fillRect(hot[k] - s / 2, hot[k + 1] - s / 2, s, s);
       }
     };
 
     const now = () => (performance.now() - t0) / 1000;
-    const loop = (ms: number) => {
+    const loop = () => {
       if (!visible || document.hidden) {
         raf = 0;
         return;
       }
       raf = requestAnimationFrame(loop);
-      if (coarse && ms - last < 30) return;
-      last = ms;
       resize();
       frame(now());
     };
     const wake = () => {
-      if (!reduced && !raf && visible && !document.hidden)
+      if (!raf && visible && !document.hidden) {
         raf = requestAnimationFrame(loop);
+      }
     };
 
     /** Where on the ground a screen point lands (ignoring the waves). */
@@ -163,8 +164,8 @@ export function WaveMesh({
       const sy = e.clientY - r.top;
       if (sx < 0 || sy < 0 || sx > r.width || sy > r.height || sy <= hz + 4)
         return null;
-      const z = Math.min(FAR, Math.max(NEAR, (CAM * f) / (sy - hz)));
-      return {x: ((sx - W / 2) * z) / f, z};
+      const z = Math.min(FAR, Math.max(NEAR, (CAM * fy) / (sy - hz)));
+      return {x: ((sx - W / 2) * z) / fx, z};
     };
     const onMove = (e: PointerEvent) => {
       const g = ground(e);
@@ -184,26 +185,22 @@ export function WaveMesh({
     };
 
     resize();
-    frame(reduced ? 3 : 0);
+    frame(0);
     const io = new IntersectionObserver(([e]) => {
-      visible = e.isIntersecting;
+      visible = e ? e.isIntersecting : true;
       wake();
     });
     io.observe(host);
     const ro = new ResizeObserver(() => {
-      if (reduced) {
-        resize();
-        frame(3);
-      }
+      resize();
+      wake();
     });
     ro.observe(host);
     document.addEventListener('visibilitychange', wake);
-    if (!reduced) {
-      wake();
-      if (!coarse)
-        window.addEventListener('pointermove', onMove, {passive: true});
-      window.addEventListener('pointerdown', onDown, {passive: true});
-    }
+    wake();
+    window.addEventListener('pointermove', onMove, {passive: true});
+    window.addEventListener('pointerdown', onDown, {passive: true});
+
     return () => {
       cancelAnimationFrame(raf);
       raf = 0;
