@@ -244,7 +244,13 @@ export function RuixenHero({
           transition={{duration: 0.55, delay: 0.08, ease: [0.16, 1, 0.3, 1]}}
           className="mt-5 font-display text-4xl sm:text-5xl lg:text-[56px] font-semibold tracking-tight leading-[1.08] text-zinc-900 dark:text-white text-balance"
         >
-          <VariableText as="span" radius={170} maxBlur={1.6}>
+          <VariableText
+            as="span"
+            radius={185}
+            maxBlur={2.8}
+            minWeight={300}
+            maxWeight={800}
+          >
             Smart Parking Infrastructure That Works For You
           </VariableText>
         </motion.h1>
@@ -255,7 +261,15 @@ export function RuixenHero({
           transition={{duration: 0.55, delay: 0.16, ease: [0.16, 1, 0.3, 1]}}
           className="mx-auto mt-4 max-w-2xl text-sm sm:text-base text-zinc-600 dark:text-zinc-300 leading-relaxed"
         >
-          Search nearby bays by GPS or Indian city hub, issue instant QR gate passes, list vendor parking spaces, and govern facilities from dedicated pages.
+          <VariableText
+            as="span"
+            radius={140}
+            maxBlur={1.8}
+            minWeight={300}
+            maxWeight={600}
+          >
+            Search nearby bays by GPS or Indian city hub, issue instant QR gate passes, list vendor parking spaces, and govern facilities from dedicated pages.
+          </VariableText>
         </motion.p>
 
         {/* Interactive Hero Nearby & Location-Wise Search Bar */}
